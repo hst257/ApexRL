@@ -76,3 +76,16 @@ def test_result_snapshots_are_immutable(tracks):
 def test_invalid_race_durations_rejected(values):
     with pytest.raises(ValueError):
         SimulationConfig(**values)
+
+
+def test_seeded_reset_offsets_validate_before_mutation(tracks):
+    simulation = RacingSimulation(tracks[0])
+    before = simulation.snapshot()
+    with pytest.raises(ValueError, match="footprint"):
+        simulation.reset(seed=99, lateral_offset=100)
+    assert simulation.snapshot() == before
+    assert simulation.seed == 42
+    a = simulation.reset(seed=99, lateral_offset=.2, heading_offset=.02)
+    b = simulation.reset(seed=99, lateral_offset=.2, heading_offset=.02)
+    assert a == b
+    assert simulation.seed == 99

@@ -1,6 +1,6 @@
 # APEX RL
 
-An original top-down Formula-style time-trial racer for Windows, built with Python and Pygame. Phase 1 includes the playable standalone game and a deterministic, graphics-independent simulation. **No reinforcement learning is implemented or installed.**
+An original top-down Formula-style time-trial racer for Windows, built with Python and Pygame. Phase 1 includes the standalone game and a deterministic, graphics-independent simulation. Phase 2 adds optional Gymnasium environments, PPO training, evaluation, and AI playback. See [PHASE2.md](PHASE2.md) for installation and commands, and [PHASE2_VALIDATION.md](PHASE2_VALIDATION.md) for measured results.
 
 ## Setup and launch
 
@@ -56,6 +56,7 @@ The default resizable window is 1280×720. Rendering targets 60 FPS, with aspect
 - `apexrl/core/`: continuous controls, vehicle configuration/state, bicycle-model physics, spline geometry, spatial track queries, footprint collision checks, lap timing, and simulation snapshots.
 - `apexrl/game/`: application state transitions, keyboard adapter, camera, original graphics, menus, bounded effects, and synthesized audio.
 - `apexrl/utils/`: validated preferences and atomic versioned JSON persistence.
+- `apexrl/rl/`: optional Gymnasium adapter, normalized observations, reward rules, PPO training, compatible checkpoints, evaluation, and policy viewer.
 - `config/`, `tracks/`: tunable JSON parameters and circuit definitions.
 - `tests/`: behavioral, geometry, determinism, persistence, and application tests.
 
@@ -113,8 +114,8 @@ Tests cover acceleration, braking, drag, saturation, slides, valid/invalid geome
 python main.py --track rookie_ring --frames 120 --screenshot artifacts/native-race.png
 ```
 
-## Phase 1 limits and next phase
+## Limits and phase scope
 
 Handling is simcade, not a professional tire or aerodynamics simulation. Grass/curb effects average wheel contacts; contact resolution is forgiving rather than a rigid-body solver. There is no reverse gear, sector timing, gravel, multiplayer, gamepad input, or replay-file UI. Visual inspection and scripted input tests do not establish hands-on driving feel; human playtesting remains necessary.
 
-After explicit Phase 2 approval, the existing headless action/state API can support a Gymnasium adapter, numerical observations, reward and episode rules, reproducible evaluation, and training dependencies. None of those are part of Phase 1.
+The optional Phase 2 pipeline uses this same physics and lap validation. Its short verification run proves training, checkpoint reload, resume, and playback; the resulting policy has not completed a valid lap. Longer training and measured tuning are needed for a capable racing driver. Subsequent phases still require explicit authorization.

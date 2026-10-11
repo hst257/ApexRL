@@ -9,6 +9,9 @@ description = "An original headless-capable simcade time-trial racer"
 requires-python = ">=3.11"
 dependencies = ["pygame==2.6.1", "numpy>=1.24,<3"]
 
+[project.optional-dependencies]
+rl = ["gymnasium==1.4.0", "stable-baselines3==2.9.0", "torch==2.14.1", "tensorboard==2.21.0", "matplotlib>=3.8,<4"]
+
 [tool.setuptools.packages.find]
 include = ["apexrl*"]
 

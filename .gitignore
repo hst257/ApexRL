@@ -7,3 +7,5 @@ dist/
 saves/*.json
 saves/*.tmp
 artifacts/
+runs/
+models/

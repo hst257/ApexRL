@@ -4,19 +4,20 @@ Whatever action you can do yourself, Please do yourself, this includes starting 
 
 ## Project Status & Scope
 
-ApexRL is a Python 3.11+ top-down Formula-style racing game targeting Windows. Phase 1 implements a standalone time-trial game and headless simulation. There is no Git history in this workspace; create modules only when needed.
+ApexRL targets Windows and Python 3.11+. Phase 1 implements gameplay; Phase 2 adds optional Gymnasium, PPO, evaluation, and policy playback.
 
-Implement the standalone game first. Do not add Gymnasium, PyTorch, PPO, rewards, AI drivers, training code, or future-phase placeholders without explicit authorization.
+Preserve manual gameplay and keep RL dependencies optional. Do not begin subsequent phases without explicit authorization.
 
 ## Project Structure & Module Organization
 
-- `main.py`: game entry point.
+- `main.py`: game entry.
 - `apexrl/core/`: vehicle dynamics, geometry, surfaces, collisions, checkpoints, timing, and headless simulation.
 - `apexrl/game/`: Pygame application, input, camera, rendering, HUD, menus, effects, and audio.
 - `apexrl/utils/`: settings and persistence.
+- `apexrl/rl/`: environment, observations, rewards, checkpoints, evaluation, training, and spectator rendering.
 - `config/`: JSON game and vehicle parameters.
 - `tracks/`: original Rookie Ring, Apex Valley, and Velocity Circuit definitions.
-- Graphics and audio are generated in `apexrl/game/`; system fonts have Pygame fallback.
+- Graphics and audio are generated in `apexrl/game/`.
 - `tests/`: Pytest suites; `saves/`: generated settings and lap records.
 
 ## Build, Test, and Development Commands
@@ -30,24 +31,26 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe -m pytest tests/test_physics.py -q
 .\.venv\Scripts\python.exe benchmark.py --output artifacts/benchmark.json
+.\.venv\Scripts\python.exe -m pip install -r requirements-rl.txt
+.\.venv\Scripts\python.exe train.py --smoke
 ```
 
-These create an environment, install dependencies, launch, test, and benchmark 100,000 headless steps per track. No separate build is required. `python visual_check.py` produces scripted screenshots under `artifacts/visual/`.
+No separate build is required. `visual_check.py` captures screens. `evaluate.py --model <zip>` measures policies; `watch.py --model <zip>` launches playback. Store outputs in ignored `runs/` or `artifacts/`. See `PHASE2.md` for CPU installation.
 
 ## Coding Style & Architecture
 
 Use four-space indentation, type hints for public interfaces, `snake_case` functions/modules, `PascalCase` classes, and `UPPER_SNAKE_CASE` constants. No formatter or linter is configured yet.
 
-Keep tuning in dataclasses or JSON. Use SI units; headings are radians, with zero pointing right and positive rotation clockwise. Physics uses a fixed 1/120-second timestep.
+Keep tuning in dataclasses or JSON. Use SI units and clockwise-positive radians. Physics uses a fixed 1/120-second timestep.
 
-Core modules must not import Pygame or depend on wall-clock time. Controllers produce continuous `VehicleControl` actions; renderers only read simulation state. Avoid mutable global state and seed stochastic behavior explicitly.
+Core modules must not import Pygame or read wall-clock time. Controllers produce `VehicleControl`; renderers only read state. Seed stochastic behavior explicitly. Bump RL observation/action versions when their meaning or normalization changes.
 
 ## Testing Guidelines
 
-Name suites `test_*.py` and cases `test_<behavior>`. Cover physics stability, track validity, collision footprints, ordered forward checkpoint crossings, recovery, determinism, and headless operation. No coverage percentage is configured. Add regression tests for simulation bugs.
+Name suites `test_*.py` and cases `test_<behavior>`. Cover physics, tracks, collisions, lap exploits, determinism, Gymnasium contracts, reward exploits, termination/truncation, checkpoint reload, and Windows spawning. RL tests skip when optional dependencies are absent. No coverage percentage is configured.
 
 ## Commit & Pull Request Guidelines
 
-No existing commit convention is available. Use concise imperative subjects, such as `Add ordered checkpoint validation`.
+The initial commit uses `Version 1: Game Build`. Prefer clear imperative subjects, such as `Add seeded PPO evaluation`, or descriptive milestone subjects.
 
-PRs should explain behavior changes, reference applicable issues, list actual test and benchmark results, and include screenshots for visual changes. Distinguish screenshot review from hands-on driving verification. Exclude virtual environments, caches, generated saves, and unlicensed assets.
+PRs should explain changes, link applicable issues, report tests and benchmarks, and include visual screenshots. Distinguish screenshot review from driving verification. Exclude environments, caches, generated saves, and unlicensed assets.

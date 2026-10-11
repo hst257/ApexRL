@@ -81,10 +81,23 @@ class RacingSimulation:
         self.timing = LapTiming(track)
         self.reset()
 
-    def reset(self) -> SimulationSnapshot:
-        self.random.seed(self.seed)
+    def reset(self, *, seed: int | None = None, lateral_offset: float = 0.0,
+              heading_offset: float = 0.0) -> SimulationSnapshot:
+        """Start a fresh race with an optional validated grid-pose perturbation."""
+        if not math.isfinite(lateral_offset) or not math.isfinite(heading_offset):
+            raise ValueError("Reset offsets must be finite")
+        if seed is not None and (not isinstance(seed, int) or isinstance(seed, bool)):
+            raise ValueError("seed must be an integer")
         x, y, heading = self.track.pose(self.track.start_progress)
-        self.vehicle = VehicleState(x=x, y=y, heading=heading)
+        x -= math.sin(heading)*lateral_offset
+        y += math.cos(heading)*lateral_offset
+        candidate = VehicleState(x=x, y=y, heading=(heading+heading_offset+math.pi) % (2*math.pi)-math.pi)
+        if any(self.track.surface(*point) != "asphalt" for point in candidate.footprint(self.config)):
+            raise ValueError("Reset footprint must fit entirely on asphalt")
+        if seed is not None:
+            self.seed = seed
+        self.random.seed(self.seed)
+        self.vehicle = candidate
         self.timing.reset()
         self.simulation_time = 0.0
         self.countdown = self.simulation_config.countdown_seconds
