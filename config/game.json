@@ -1,0 +1,14 @@
+{
+  "resolution": [1280, 720],
+  "fullscreen": false,
+  "quality": "high",
+  "volume": 0.35,
+  "steering_sensitivity": 0.8,
+  "camera_smoothing": 6.0,
+  "physics_dt": 0.008333333333333333,
+  "max_catchup_steps": 16,
+  "pixels_per_meter": 5.0,
+  "countdown_seconds": 3.0,
+  "shortcut_seconds": 2.0,
+  "recovery_seconds": 8.0
+}

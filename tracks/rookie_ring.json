@@ -1,0 +1,6 @@
+{
+  "id": "rookie_ring", "name": "Rookie Ring", "difficulty": "Easy", "theme": "meadow",
+  "description": "Wide open straights, gentle bends and a forgiving hairpin. Find your rhythm.",
+  "target_length": 1200, "road_width": 16,
+  "control_points": [[0,0],[180,0],[260,35],[300,100],[285,150],[230,165],[180,140],[135,160],[40,180],[-35,140],[-50,60]]
+}

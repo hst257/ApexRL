@@ -1,0 +1,6 @@
+{
+  "id": "apex_valley", "name": "Apex Valley", "difficulty": "Medium", "theme": "valley",
+  "description": "Two heavy braking zones and a technical chicane. Precision earns time.",
+  "target_length": 1800, "road_width": 13,
+  "control_points": [[0,0],[200,0],[260,40],[250,100],[290,130],[305,195],[215,225],[170,195],[130,220],[40,240],[-40,180],[-70,85],[-35,35]]
+}

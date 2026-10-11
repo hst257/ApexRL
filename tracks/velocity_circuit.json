@@ -1,0 +1,7 @@
+{
+  "id": "velocity_circuit", "name": "Velocity Circuit", "difficulty": "Hard", "theme": "coastal",
+  "description": "Fast sweepers meet narrow switchbacks. Commit, then brake with intent.",
+  "target_length": 2500, "road_width": 12,
+  "width_profile": [[0,13],[0.25,13],[0.4,10],[0.75,10],[0.9,12],[1,13]],
+  "control_points": [[0,0],[260,0],[330,55],[320,140],[280,185],[300,235],[360,250],[365,310],[280,345],[180,320],[160,240],[105,245],[100,330],[20,355],[-65,310],[-85,220],[-35,150],[-70,70],[-40,20]]
+}
