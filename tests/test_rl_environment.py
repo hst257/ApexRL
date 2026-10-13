@@ -225,3 +225,18 @@ def test_invalid_environment_configs_fail(values):
 def test_negative_reward_weights_rejected():
     with pytest.raises(ValueError):
         RewardConfig(progress_per_meter=-1)
+
+
+def test_optional_corner_penalty_preserves_physics_and_observations(tracks):
+    base = make_env(tracks)
+    corners = make_env(tracks, reward=RewardConfig(corner_overspeed=.02))
+    for env in (base, corners):
+        env.reset(seed=42)
+        env.simulation.vehicle.longitudinal_velocity = 40
+    plain = base.step((0,0))
+    shaped = corners.step((0,0))
+    assert np.array_equal(plain[0], shaped[0])
+    assert base.simulation.snapshot() == corners.simulation.snapshot()
+    assert "corner_overspeed" not in plain[4]["reward_terms"]
+    assert shaped[4]["reward_terms"]["corner_overspeed"] < 0
+    assert shaped[1] < plain[1]

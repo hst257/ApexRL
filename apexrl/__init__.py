@@ -1,3 +1,3 @@
-"""ApexRL Phase 1. Importing this package never initializes Pygame."""
+"""ApexRL. Importing this package never initializes Pygame or optional RL."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

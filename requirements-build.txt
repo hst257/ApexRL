@@ -1,0 +1,3 @@
+# Optional Windows release tooling; game and training dependencies are separate.
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.8

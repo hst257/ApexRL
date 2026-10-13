@@ -4,7 +4,7 @@ Whatever action you can do yourself, Please do yourself, this includes starting 
 
 ## Project Status & Scope
 
-ApexRL targets Windows and Python 3.11+. Phase 1 implements gameplay; Phase 2 adds optional Gymnasium, PPO, evaluation, and policy playback.
+ApexRL targets Windows and Python 3.11+. Gameplay, optional PPO, AI Garage, and all-circuit drivers are implemented. Version 1.0 adds release polish, packaging, and verification.
 
 Preserve manual gameplay and keep RL dependencies optional. Do not begin subsequent phases without explicit authorization.
 
@@ -12,7 +12,7 @@ Preserve manual gameplay and keep RL dependencies optional. Do not begin subsequ
 
 - `main.py`: game entry.
 - `apexrl/core/`: vehicle dynamics, geometry, surfaces, collisions, checkpoints, timing, and headless simulation.
-- `apexrl/game/`: Pygame application, input, camera, rendering, HUD, menus, effects, and audio.
+- `apexrl/game/`: Pygame application, input, camera, rendering, menus, audio, and lazy AI playback.
 - `apexrl/utils/`: settings and persistence.
 - `apexrl/rl/`: environment, observations, rewards, checkpoints, evaluation, training, and spectator rendering.
 - `config/`: JSON game and vehicle parameters.
@@ -53,4 +53,4 @@ Name suites `test_*.py` and cases `test_<behavior>`. Cover physics, tracks, coll
 
 The initial commit uses `Version 1: Game Build`. Prefer clear imperative subjects, such as `Add seeded PPO evaluation`, or descriptive milestone subjects.
 
-PRs should explain changes, link applicable issues, report tests and benchmarks, and include visual screenshots. Distinguish screenshot review from driving verification. Exclude environments, caches, generated saves, and unlicensed assets.
+PRs should explain changes, link issues, report tests and benchmarks, and include visual screenshots. Distinguish screenshot review from driving verification. Exclude environments, caches, saves, and unlicensed assets.

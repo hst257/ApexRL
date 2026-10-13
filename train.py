@@ -13,10 +13,13 @@ def main():
     parser.add_argument("--seed", type=int)
     parser.add_argument("--run-dir", type=Path)
     parser.add_argument("--resume", type=Path)
+    parser.add_argument("--initialize-from", type=Path, help="Copy policy weights into a fresh optimizer; permits reward tuning")
     parser.add_argument("--vector", choices=("dummy", "subproc"), default="dummy")
     parser.add_argument("--device", choices=("cpu", "cuda", "auto"), default="cpu")
     parser.add_argument("--smoke", action="store_true", help="16,384 steps; two envs and two evaluation episodes")
     args = parser.parse_args()
+    if args.resume and args.initialize_from:
+        parser.error("Choose --resume or --initialize-from")
     from apexrl.rl.config import load_training_config
     from apexrl.rl.training import train
     config = load_training_config(args.config)
@@ -28,7 +31,7 @@ def main():
                 parser.error(f"Invalid {key}")
             config[key] = value
     train(root=root, config=config, track_id=args.track, run_dir=args.run_dir,
-          resume=args.resume, vector=args.vector, device=args.device)
+          resume=args.resume, vector=args.vector, device=args.device, initialize_from=args.initialize_from)
 
 
 if __name__ == "__main__":

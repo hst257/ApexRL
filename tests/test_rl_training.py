@@ -11,9 +11,23 @@ from apexrl.rl import ApexRacingEnv
 from apexrl.rl.checkpoints import make_manifest, read_checkpoint, save_checkpoint
 from apexrl.rl.config import EnvConfig, load_training_config
 from apexrl.rl.evaluation import evaluate
-from apexrl.rl.training import make_vector_env, train
+from apexrl.rl.training import checkpoint_score, make_vector_env, train
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_checkpoint_selection_prioritizes_every_circuit():
+    reliable = {track: {"success_rate": .9, "mean_max_progress_fraction": .95, "mean_return": 100}
+                for track in ("rookie_ring", "apex_valley", "velocity_circuit")}
+    specialist = {track: dict(value) for track, value in reliable.items()}
+    specialist["velocity_circuit"].update(success_rate=0, mean_return=10000)
+    assert checkpoint_score(reliable) > checkpoint_score(specialist)
+    incomplete = {track: dict(value, success_rate=0) for track, value in reliable.items()}
+    regressed = {track: dict(value) for track, value in incomplete.items()}
+    regressed["apex_valley"].update(mean_max_progress_fraction=.2, mean_return=10000)
+    assert checkpoint_score(incomplete) > checkpoint_score(regressed)
+    with pytest.raises(ValueError, match="circuit"):
+        checkpoint_score({})
 
 
 def test_sb3_checker(tracks):
@@ -85,3 +99,9 @@ def test_training_outputs_resume_and_preserves_existing_run(tmp_path, tracks):
     assert report["new_timesteps"] == 32
     assert report["num_timesteps"] == 64
     assert json.loads((resumed/"run.json").read_text())["resumed_from"] == str((run_dir/"final_model.zip").resolve())
+    config["environment"]["reward"]["corner_overspeed"] = .02
+    with pytest.raises(ValueError, match="matching"):
+        train(root=ROOT, config=config, resume=run_dir/"final_model.zip", run_dir=tmp_path/"invalid-resume")
+    initialized, report = train(root=ROOT, config=config, initialize_from=run_dir/"final_model.zip", run_dir=tmp_path/"initialized")
+    assert report["num_timesteps"] == report["new_timesteps"] == 32
+    assert json.loads((initialized/"run.json").read_text())["source_timesteps"] == 32

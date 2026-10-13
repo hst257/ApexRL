@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apexrl"
-version = "0.1.0"
+version = "1.0.0"
 description = "An original headless-capable simcade time-trial racer"
 requires-python = ">=3.11"
 dependencies = ["pygame==2.6.1", "numpy>=1.24,<3"]

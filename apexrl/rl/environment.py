@@ -93,6 +93,8 @@ class ApexRacingEnv(gym.Env):
         terms = {"progress": 0.0, "time": 0.0, "grass": 0.0, "slip": 0.0,
                  "steering_change": -weights.steering_change*(float(steering)-self._previous_steering)**2,
                  "checkpoint": 0.0, "lap": 0.0, "failure": 0.0}
+        if weights.corner_overspeed:
+            terms["corner_overspeed"] = 0.0
         reason = None
         terminated = truncated = False
         events = []
@@ -122,6 +124,15 @@ class ApexRacingEnv(gym.Env):
             terms["time"] -= dt*weights.time_per_second
             terms["grass"] -= dt*weights.grass_per_second*self.simulation.wheel_surfaces.count("grass")/4
             terms["slip"] -= dt*weights.slip_per_second*abs(state.vehicle.lateral_velocity)/self.vehicle_config.maximum_speed
+            if weights.corner_overspeed:
+                track = self.simulation.track
+                horizon = max(15.0, state.vehicle.speed*1.5)
+                ahead = np.linspace(state.track_progress, state.track_progress+horizon, 12) % track.total_length
+                indices = np.clip(np.searchsorted(track.cumulative, ahead, side="right")-1, 0, len(track.curvatures)-1)
+                curvature = max(1e-6, float(np.max(np.abs(track.curvatures[indices]))))
+                target = math.sqrt(weights.corner_lateral_acceleration/curvature)
+                excess = max(0.0, state.vehicle.speed-target)
+                terms["corner_overspeed"] -= dt*weights.corner_overspeed*excess*excess
             terms["checkpoint"] += weights.checkpoint*sum(event.kind == "checkpoint" for event in result.events)
             if lap_complete:
                 reason, terminated = "lap_completed", True

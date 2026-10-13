@@ -1,6 +1,12 @@
 # APEX RL
 
-An original top-down Formula-style time-trial racer for Windows, built with Python and Pygame. Phase 1 includes the standalone game and a deterministic, graphics-independent simulation. Phase 2 adds optional Gymnasium environments, PPO training, evaluation, and AI playback. See [PHASE2.md](PHASE2.md) for installation and commands, and [PHASE2_VALIDATION.md](PHASE2_VALIDATION.md) for measured results.
+**Version 1.0.** An original top-down Formula-style time-trial racer for Windows, built with Python and Pygame. Drive three circuits manually or watch two validated neural-network drivers in the AI Garage. The graphics-independent simulation supports deterministic headless stepping, optional Gymnasium/PPO training, and reproducible evaluation.
+
+## Windows release
+
+Extract the whole `dist/ApexRL-1.0.0-Windows-x64.zip` and open **ApexRL.exe**. Python, CPU AI playback, and both trained drivers are included. Keep `_internal` beside the executable. Saves and diagnostics live in `saves/` beside it. The matching source archive includes the model checkpoints and reports; an ordinary Git clone excludes generated models.
+
+See [RELEASE.md](RELEASE.md) for quick-start controls and [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) for release checks. The Garage opens with published drivers, shows circuit-specific results and lap times, and offers cancellable loading. Choose **Show Training Runs** to inspect experimental checkpoints in a development checkout.
 
 ## Setup and launch
 
@@ -95,7 +101,7 @@ Settings and per-track personal bests are written under `saves/`. Save files hav
 
 ## Tests and measured validation
 
-The recorded Phase 1 run passed **58 tests** and measured **3,592.9–3,902.0 complete headless steps/second**, with 100,000 measured steps on each track. See [VALIDATION.md](VALIDATION.md) for per-track measurements, native screenshot evidence, and the distinction between automated checks and unverified human driving feel.
+The version 1.0 source verification passed **106 tests**. Fresh benchmarks measured **1,738.5–1,854.8 complete headless steps/second**, with 100,000 measured steps on each track while packaging and tests also ran. See [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) for native screenshots, packaged checks, and measurement limits.
 
 ```powershell
 python -m pytest -q
@@ -118,4 +124,15 @@ python main.py --track rookie_ring --frames 120 --screenshot artifacts/native-ra
 
 Handling is simcade, not a professional tire or aerodynamics simulation. Grass/curb effects average wheel contacts; contact resolution is forgiving rather than a rigid-body solver. There is no reverse gear, sector timing, gravel, multiplayer, gamepad input, or replay-file UI. Visual inspection and scripted input tests do not establish hands-on driving feel; human playtesting remains necessary.
 
-The optional Phase 2 pipeline uses this same physics and lap validation. Its short verification run proves training, checkpoint reload, resume, and playback; the resulting policy has not completed a valid lap. Longer training and measured tuning are needed for a capable racing driver. Subsequent phases still require explicit authorization.
+The optional RL pipeline uses the same physics and lap validation. The Rookie specialist completed 50/50 held-out Rookie laps across publication and confirmation, with a best time near 29.57 seconds. The all-circuit driver completed **25/25 held-out laps per circuit**, with publication best times of **52.91 s, 79.37 s, and 116.72 s**. It uses demonstration bootstrapping followed by PPO and favors reliable laps over aggressive speed. Both drivers are included in the release archives. See [PHASE4_VALIDATION.md](PHASE4_VALIDATION.md) for the training measurements; [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md), and [PHASE4.md](PHASE4.md) explain the development workflows.
+
+## Rebuild the release
+
+Use Windows and the RL virtual environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe build_windows.py
+```
+
+Both published model/metadata/evaluation sets must be present and pass the publication checks. The build produces the executable folder, Windows ZIP, matching source ZIP, third-party runtime notices, and archive SHA-256 checksums under ignored `dist/`. Runtime archives exclude user saves, training runs, and test artifacts. The source archive contains the tests and training commands. Packaged verification is available with `ApexRL.exe --self-check --output verification/report.json`.

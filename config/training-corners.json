@@ -1,0 +1,53 @@
+{
+  "environment": {
+    "action_repeat": 4,
+    "max_episode_seconds": 180.0,
+    "offtrack_seconds": 1.0,
+    "stall_seconds": 8.0,
+    "wrong_way_seconds": 2.0,
+    "progress_threshold": 0.5,
+    "spawn_lateral_jitter": 0.3,
+    "spawn_heading_jitter": 0.03,
+    "lookahead_distances": [
+      5.0,
+      15.0,
+      30.0,
+      60.0,
+      100.0,
+      160.0
+    ],
+    "reward": {
+      "progress_per_meter": 0.1,
+      "time_per_second": 0.05,
+      "grass_per_second": 0.5,
+      "slip_per_second": 0.15,
+      "steering_change": 0.01,
+      "checkpoint": 2.0,
+      "lap": 100.0,
+      "failure": 10.0,
+      "corner_overspeed": 0.02,
+      "corner_lateral_acceleration": 8.0
+    }
+  },
+  "ppo": {
+    "learning_rate": 0.0001,
+    "n_steps": 512,
+    "batch_size": 128,
+    "n_epochs": 5,
+    "gamma": 0.995,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.001,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "policy_width": 64
+  },
+  "total_timesteps": 150000,
+  "n_envs": 2,
+  "checkpoint_frequency": 10000,
+  "evaluation_frequency": 10000,
+  "evaluation_episodes": 3,
+  "seed": 42,
+  "torch_threads": 1,
+  "initial_action_std": 0.2
+}

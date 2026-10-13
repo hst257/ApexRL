@@ -43,7 +43,7 @@ class Menus:
         self.type.text(surface, "APEX RL  /  ORIGINAL CIRCUITS. YOUR RACING LINE.", (64, 681), 13, MUTED)
         self.type.text(surface, "UP / DOWN  NAVIGATE     ENTER  SELECT     ESC  BACK", (1216, 681), 13, MUTED, align="right")
 
-    def draw(self, surface, screen, tracks, current, records, settings, audio_available):
+    def draw(self, surface, screen, tracks, current, records, settings, audio_available, ai=None):
         self.buttons = []
         if screen == "main":
             self.background(surface, "", "TIME TRIAL / SINGLE PLAYER")
@@ -51,13 +51,41 @@ class Menus:
             self.type.text(surface, "RL", (350, 95), 74, LIME, True)
             self.type.text(surface, "CHASE YOUR PERFECT LAP.", (65, 210), 25, WHITE, True)
             self.type.text(surface, "Three circuits. One car. Every tenth matters.", (65, 248), 17, MUTED)
-            for i, (label, action) in enumerate((("Play", "play"), ("Track Selection", "tracks"), ("Controls", "controls"), ("Settings", "settings"), ("Quit", "quit"))):
-                self.button(surface, (64, 315+i*61, 360, 49), label.upper(), action)
+            for i, (label, action) in enumerate((("Play", "play"), ("Track Selection", "tracks"), ("Controls", "controls"), ("Settings", "settings"), ("AI Garage", "ai"), ("Quit", "quit"))):
+                self.button(surface, (64, 315+i*56, 360, 49), label.upper(), action)
             self.type.text(surface, "ON THE GRID", (510, 153), 14, LIME, True)
             self.renderer.minimap(surface, tracks[current], (508, 191, 704, 345))
             track = tracks[current]
             self.type.text(surface, track.name.upper(), (510, 558), 30, WHITE, True)
             self.type.text(surface, f"{track.difficulty.upper()}  /  {track.total_length/1000:.2f} KM  /  PERSONAL BEST {format_time(records.best(track))}", (510, 605), 15, MUTED)
+        elif screen == "ai_loading":
+            self.background(surface, "Preparing your driver.", "AI GARAGE / LOADING")
+            self.type.text(surface, "Checking the model and starting the racing environment...", (64, 176), 21, MUTED)
+            self.renderer.minimap(surface, tracks[current], (480, 252, 720, 310))
+            self.type.text(surface, tracks[current].name.upper(), (480, 590), 28, WHITE, True)
+            self.type.text(surface, "The first load can take a few seconds.", (64, 245), 17, MUTED)
+            self.button(surface, (64, 585, 340, 44), "CANCEL", "ai:cancel")
+        elif screen == "ai":
+            self.background(surface, "Watch the learning driver.", "AI GARAGE / LOCAL POLICIES")
+            details = ai or {}
+            self.type.text(surface, "SELECTED DRIVER", (64, 172), 15, LIME, True)
+            label = details.get("label", "No checkpoint found.")
+            self.type.text(surface, label[:66], (64, 205), 22, WHITE, True)
+            self.type.text(surface, details.get("summary", "Train a policy with train.py to get started."), (64, 245), 17, MUTED)
+            self.type.text(surface, "Local models are checked before loading. Watch only models you trust.", (64, 283), 15, MUTED)
+            if details.get("validation"):
+                self.type.text(surface, details["validation"], (480, 310), 15, LIME, True)
+            toggle = "Published Drivers" if details.get("library") == "All checkpoints" else "Show Training Runs"
+            for i, (label, action) in enumerate((("Watch Driver", "ai:watch"), ("Next Driver", "ai:next"),
+                                                ("Previous Driver", "ai:previous"), ("Change Circuit", "ai:track"),
+                                                ("Refresh Drivers", "ai:refresh"), (toggle, "ai:library"), ("Back", "back"))):
+                self.button(surface, (64, 330+i*46, 340, 40), label.upper(), action)
+            self.renderer.minimap(surface, tracks[current], (480, 340, 720, 232))
+            if details.get("best_lap") and details["best_lap"] != "--:--.---":
+                self.type.text(surface, f"BEST VALIDATED LAP  {details['best_lap']}", (480, 581), 15, LIME, True)
+            self.type.text(surface, tracks[current].name.upper(), (480, 602), 28, WHITE, True)
+            if details.get("error"):
+                self.type.text(surface, details["error"][:98], (64, 655), 15, RED)
         elif screen == "tracks":
             self.background(surface, "Choose your circuit.", "THE TRACK COLLECTION")
             for i, track in enumerate(tracks):
@@ -99,13 +127,14 @@ class Menus:
             if not audio_available:
                 self.type.text(surface, "Audio device unavailable; gameplay remains available.", (64, 625), 15, RED)
             self.button(surface, (1052, 589, 164, 50), "BACK", "back")
-        elif screen == "pause":
+        elif screen in ("pause", "ai_pause"):
             veil = pygame.Surface((1280, 720), pygame.SRCALPHA)
             veil.fill((*INK, 215))
             surface.blit(veil, (0, 0))
             self.type.text(surface, "TAKE A BREATHER.", (640, 108), 43, WHITE, True, "center")
             self.type.text(surface, "THE CLOCK IS PAUSED.", (640, 166), 15, LIME, True, "center")
-            for i, (label, action) in enumerate((("Resume", "resume"), ("Restart", "restart"), ("Track Selection", "tracks"), ("Settings", "settings"), ("Main Menu", "main"))):
+            choices = (("Resume", "ai:resume"), ("Restart Episode", "ai:restart"), ("AI Garage", "ai"), ("Main Menu", "main")) if screen == "ai_pause" else (("Resume", "resume"), ("Restart", "restart"), ("Track Selection", "tracks"), ("Settings", "settings"), ("Main Menu", "main"))
+            for i, (label, action) in enumerate(choices):
                 self.button(surface, (440, 230+i*69, 400, 52), label.upper(), action)
 
     def navigate(self, direction):

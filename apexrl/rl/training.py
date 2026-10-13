@@ -18,6 +18,17 @@ from .environment import ApexRacingEnv
 from .evaluation import evaluate
 
 
+def checkpoint_score(summary: dict) -> tuple[float, ...]:
+    """Prefer reliable laps on every circuit before progress or raw reward."""
+    values = list(summary.values())
+    if not values:
+        raise ValueError("Checkpoint selection requires at least one circuit")
+    success = [value["success_rate"] for value in values]
+    progress = [value["mean_max_progress_fraction"] for value in values]
+    return (min(success), float(np.mean(success)), min(progress), float(np.mean(progress)),
+            float(np.mean([value["mean_return"] for value in values])))
+
+
 class EnvFactory:
     """Picklable Windows spawn factory. Never captures Pygame or simulation state."""
     def __init__(self, root, track_id, config, monitor_path, tracks=None):
@@ -44,7 +55,7 @@ class RacingCallback(BaseCallback):
         super().__init__()
         self.root, self.run_dir, self.config = root, run_dir, config
         self.manifest, self.tracks = manifest, tracks
-        self.best_score = -math.inf
+        self.best_score = (-math.inf,)*5
 
     def _on_training_start(self):
         self.next_checkpoint = self.num_timesteps+self.config["checkpoint_frequency"]
@@ -76,10 +87,15 @@ class RacingCallback(BaseCallback):
             score = float(np.mean([value["mean_return"] for value in result["summary"].values()]))
             self.logger.record("eval/success_rate", success)
             self.logger.record("eval/mean_reward", score)
-            if score > self.best_score:
-                self.best_score = score
+            rank = checkpoint_score(result["summary"])
+            self.logger.record("eval/weakest_circuit_success", rank[0])
+            for identifier, value in result["summary"].items():
+                self.logger.record(f"eval/{identifier}/success_rate", value["success_rate"])
+                self.logger.record(f"eval/{identifier}/max_progress", value["mean_max_progress_fraction"])
+            if rank > self.best_score:
+                self.best_score = rank
                 save_checkpoint(self.model, self.run_dir/"best_model", self.manifest)
-            print(f"Evaluation at {self.num_timesteps}: mean reward {score:.2f}, success {success:.0%}", flush=True)
+            print(f"Evaluation at {self.num_timesteps}: mean reward {score:.2f}, success {success:.0%}, weakest circuit {rank[0]:.0%}", flush=True)
             self.next_evaluation += self.config["evaluation_frequency"]
         return True
 
@@ -87,7 +103,11 @@ class RacingCallback(BaseCallback):
         self.episode_file.close()
 
 
-def train(*, root, config, track_id="rookie_ring", run_dir=None, resume=None, vector="dummy", device="cpu"):
+def train(*, root, config, track_id="rookie_ring", run_dir=None, resume=None, vector="dummy", device="cpu", initialize_from=None):
+    if resume and initialize_from:
+        raise ValueError("Choose resume or initialize_from, not both")
+    if "initial_action_std" in config and (not math.isfinite(config["initial_action_std"]) or config["initial_action_std"] <= 0):
+        raise ValueError("initial_action_std must be finite and positive")
     root = Path(root)
     run_dir = Path(run_dir) if run_dir else root/"runs"/f"ppo_{track_id}_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}"
     if run_dir.exists() and any(run_dir.iterdir()):
@@ -111,6 +131,17 @@ def train(*, root, config, track_id="rookie_ring", run_dir=None, resume=None, ve
         if prior_env != env_config or prior["training_track"] != track_id or prior["training_config"]["ppo"] != config["ppo"]:
             raise ValueError("Resume requires matching environment, track selection, and PPO hyperparameters")
         manifest["resumed_from"] = str(resume_path.resolve())
+    if initialize_from:
+        initialize_path, prior, prior_env = read_checkpoint(initialize_from, root, tracks)
+        expected, previous = env_config.to_dict(), prior_env.to_dict()
+        expected.pop("reward")
+        previous.pop("reward")
+        if expected != previous or prior["training_config"]["ppo"]["policy_width"] != config["ppo"]["policy_width"]:
+            raise ValueError("Initialization requires matching observation scales, episode settings, and policy architecture")
+        manifest["initialized_from"] = str(initialize_path.resolve())
+        manifest["source_timesteps"] = prior["num_timesteps"]
+        if "bootstrap" in prior:
+            manifest["source_bootstrap"] = prior["bootstrap"]
     run_dir.mkdir(parents=True, exist_ok=True)
     write_json(run_dir/"run.json", manifest)
     env = make_vector_env(root, track_id, env_config, config["n_envs"], run_dir, config["seed"], vector, tracks)
@@ -126,9 +157,20 @@ def train(*, root, config, track_id="rookie_ring", run_dir=None, resume=None, ve
             width = parameters.pop("policy_width")
             model = PPO("MlpPolicy", env, policy_kwargs={"net_arch": {"pi": [width, width], "vf": [width, width]}},
                         seed=config["seed"], device=device, verbose=1, tensorboard_log=str(run_dir/"tensorboard"), **parameters)
+            if initialize_from:
+                source = PPO.load(initialize_path, device=device)
+                model.policy.load_state_dict(source.policy.state_dict())
+                del source
+                if "initial_action_std" in config:
+                    std = config["initial_action_std"]
+                    with torch.no_grad():
+                        model.policy.log_std.fill_(math.log(std))
         initial_steps = model.num_timesteps
-        baseline = evaluate(model, root=root, config=env_config, track_id="all", episodes=1, seed=config["seed"]+100000, tracks=tracks)
+        baseline = evaluate(model, root=root, config=env_config, track_id="all", episodes=config["evaluation_episodes"], seed=config["seed"]+100000, tracks=tracks)
         write_json(run_dir/"baseline_evaluation.json", baseline)
+        callback.best_score = checkpoint_score({key: value for key, value in baseline["summary"].items()
+                                               if track_id == "all" or key == track_id})
+        save_checkpoint(model, run_dir/"best_model", manifest)
         try:
             model.learn(total_timesteps=config["total_timesteps"], callback=callback,
                         reset_num_timesteps=not bool(resume), tb_log_name="ppo")
@@ -138,8 +180,8 @@ def train(*, root, config, track_id="rookie_ring", run_dir=None, resume=None, ve
         save_checkpoint(model, run_dir/"final_model", manifest)
         result = evaluate(model, root=root, config=env_config, track_id="all", episodes=config["evaluation_episodes"],
                           seed=config["seed"]+100000, tracks=tracks, collect_trajectories=True)
-        selected = [value for key, value in result["summary"].items() if track_id == "all" or key == track_id]
-        final_score = float(np.mean([value["mean_return"] for value in selected]))
+        selected = {key: value for key, value in result["summary"].items() if track_id == "all" or key == track_id}
+        final_score = checkpoint_score(selected)
         if final_score > callback.best_score:
             callback.best_score = final_score
             save_checkpoint(model, run_dir/"best_model", manifest)

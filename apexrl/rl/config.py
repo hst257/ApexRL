@@ -14,12 +14,16 @@ class RewardConfig:
     checkpoint: float = 2.0
     lap: float = 100.0
     failure: float = 10.0
+    corner_overspeed: float = 0.0
+    corner_lateral_acceleration: float = 8.0
 
     def __post_init__(self):
         for item in fields(self):
             value = getattr(self, item.name)
             if not math.isfinite(value) or value < 0:
                 raise ValueError(f"Reward parameter {item.name} must be finite and nonnegative")
+        if self.corner_lateral_acceleration <= 0:
+            raise ValueError("corner_lateral_acceleration must be positive")
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +69,8 @@ class EnvConfig:
 def load_training_config(path: str | Path) -> dict:
     result = json.loads(Path(path).read_text(encoding="utf-8"))
     EnvConfig.from_dict(result["environment"])
+    if "initial_action_std" in result and (not math.isfinite(result["initial_action_std"]) or result["initial_action_std"] <= 0):
+        raise ValueError("initial_action_std must be finite and positive")
     for name in ("total_timesteps", "n_envs", "checkpoint_frequency", "evaluation_frequency", "evaluation_episodes", "torch_threads"):
         if not isinstance(result[name], int) or result[name] <= 0:
             raise ValueError(f"{name} must be a positive integer")
